@@ -8,7 +8,7 @@ import * as Plugin from "./quartz/plugins"
  */
 const config: QuartzConfig = {
   configuration: {
-    pageTitle: "Quartz 4",
+    pageTitle: "Obsidian",
     pageTitleSuffix: "",
     enableSPA: true,
     enablePopovers: true,
@@ -16,7 +16,7 @@ const config: QuartzConfig = {
       provider: "plausible",
     },
     locale: "en-US",
-    baseUrl: "quartz.jzhao.xyz",
+    baseUrl: "cupid5trick-docs.netlify.app/obsidian",
     ignorePatterns: ["private", "templates", ".obsidian", "98-publish", "template", ".git/**/*", ".vscode", ".trash"],
     defaultDateType: "created",
     theme: {
