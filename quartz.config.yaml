@@ -68,6 +68,12 @@ plugins:
       enableInHtmlEmbed: false
       enableCheckbox: true
     order: 30
+  # Local transformer: inject the shared ACL password into private notes at build
+  # time. Must run after frontmatter parsing (order 30) and before encrypted-pages
+  # (order 900). Password comes from QUARTZ_ACL_PASSWORD (or options.password).
+  - source: "./quartz/plugins/transformers/aclProtect.ts"
+    enabled: true
+    order: 35
   - source: "@quartz-community/github-flavored-markdown"
     enabled: true
     order: 40
@@ -255,6 +261,13 @@ plugins:
       unlistWhenEncrypted: false
       outputPath: static/encryptedContentIndex.json
     order: 900
+    # Mount the EncryptedPage component so its client script loads (password
+    # form, unlock, content-index patch, and the render/content-index-updated
+    # events that reveal unlocked notes in explorer/graph/search). Without a
+    # layout position the component has no defaultPosition and never mounts.
+    layout:
+      position: beforeBody
+      priority: 1
   - source: "@quartz-community/stacked-pages"
     enabled: false
     layout:
