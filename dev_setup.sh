@@ -7,4 +7,6 @@ if [ -f "$(dirname "$0")/acl.env" ]; then
   set +a
 fi
 npm i
-npx quartz build --serve --port 1313
+# Serve at the baseUrl subpath (/obsidian) so client-side links (Explorer,
+# search, graph) match the server. basePath is derived from quartz.config.yaml.
+npx quartz build --serve --port 1313 --baseDir obsidian

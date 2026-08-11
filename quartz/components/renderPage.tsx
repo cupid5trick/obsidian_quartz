@@ -337,12 +337,13 @@ export function renderPage(
 
   const lang = componentData.fileData.frontmatter?.lang ?? cfg.locale?.split("-")[0] ?? "en"
   const direction = i18n(cfg.locale).direction ?? "ltr"
-  // During local dev (--serve), the dev server serves from root without the
-  // baseUrl subpath, so basePath must be empty to avoid broken links.
-  const basePath =
-    componentData.ctx.argv.serve || !cfg.baseUrl
-      ? ""
-      : new URL(`https://${cfg.baseUrl}`).pathname.replace(/\/$/, "")
+  // The site's canonical location is the baseUrl subpath (e.g. /obsidian). The
+  // dev server serves at the same subpath via `npx quartz build --serve
+  // --baseDir obsidian`, so basePath is derived from the config in every mode.
+  // Relying on the serve flag here was fragile: a stale build could bake
+  // /obsidian into the pages while the server served from root, making every
+  // client-side absolute link (Explorer, search, graph) 404.
+  const basePath = !cfg.baseUrl ? "" : new URL(`https://${cfg.baseUrl}`).pathname.replace(/\/$/, "")
   const doc = (
     <html lang={lang} dir={direction}>
       <Head {...componentData} />
