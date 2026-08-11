@@ -13,3 +13,11 @@ content/
 .quartz/
 quartz/cli/tui/dist/
 .turbo/
+# Build-time secrets (never commit the real QUARTZ_ACL_PASSWORD)
+.env
+.env.local
+.env.*.local
+acl.env
+# Local dev artifacts (may embed private note paths in error traces)
+serve.log
+my_content
