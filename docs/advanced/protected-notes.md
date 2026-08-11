@@ -7,15 +7,34 @@ title: Protected notes (ACL)
 
 ## What it does
 
-`quartz/plugins/transformers/aclProtect.ts` is a local Quartz v5 transformer registered at `order: 35` in `quartz.config.yaml` — after frontmatter parsing (`obsidian-flavored-markdown`, order 30) and before `@quartz-community/encrypted-pages` (order 900). For every note whose frontmatter is tagged `@acl/private` (or has `access: private`), it injects the single shared build-time password into `frontmatter.password` (unless an explicit per-note password exists) and sets `frontmatter.unlisted = true` (unless an explicit boolean exists).
+`quartz/plugins/transformers/aclProtect.ts` is a local Quartz v5 transformer registered at `order: 35` in `quartz.config.yaml` — after frontmatter parsing (`obsidian-flavored-markdown`, order 30) and before `@quartz-community/encrypted-pages` (order 900). For every note whose frontmatter is tagged `@acl/private` (or has `access: private`), it injects the single shared build-time password into `frontmatter.password` (unless an explicit per-note password exists).
 
-The `@quartz-community/encrypted-pages` plugin (with `unlistWhenEncrypted: true`) then:
+The `@quartz-community/encrypted-pages` plugin (with `unlistWhenEncrypted: false`) then replaces the page body with an AES-GCM-encrypted `div.encrypted-page[data-encrypted][data-iterations]`, so the content is only visible after entering the password.
 
-- replaces the page body with an AES-GCM-encrypted `div.encrypted-page[data-encrypted][data-iterations]`, so anonymous visitors see only a password prompt;
-- marks the page `unlisted`, excluding it from `contentIndex.json`, `sitemap.xml`, `tags.html`, folder pages and RSS;
-- writes one entry per unlisted encrypted page into `static/encryptedContentIndex.json` (each entry itself encrypted with the shared password; no plaintext slug/title leaks).
+### Notes stay LISTED
 
-After a correct unlock, the client-side script decrypts the shadow entry and dispatches a `content-index-updated` event, dynamically re-adding the page to graph/explorer/search for the session.
+`unlistWhenEncrypted: false` means encrypted notes keep their normal `unlisted` value (false), so they remain visible **everywhere as titled entries** — folder pages, the left-pane Explorer, search, graph, and `contentIndex.json`. Their **titles and slugs are public**; only the body requires the password on click. This is a deliberate trade-off:
+
+- **Folder pages work normally**, including folders that contain _only_ encrypted notes — they are emitted with the notes listed, instead of 404-ing because all children were unlisted.
+- There is no hide-before-unlock: anyone browsing can see that `20-工作/工作规划/做好防御` exists. To hide existence entirely, `stealth` mode would be required (not enabled here).
+
+The `EncryptedPage` component must be mounted for the client script to load (password form, decryption, and the `render` event). This is configured as a `layout` entry on the plugin:
+
+```yaml
+- source: "@quartz-community/encrypted-pages"
+  enabled: true
+  options:
+    iterations: 600000
+    passwordField: password
+    unlistWhenEncrypted: false
+    outputPath: static/encryptedContentIndex.json
+  order: 900
+  layout:
+    position: beforeBody
+    priority: 1
+```
+
+Without that `layout:` block the component has no default position, never mounts, and the page shows a ciphertext div with no way to unlock.
 
 ## The password
 
@@ -47,7 +66,7 @@ or `access: private`. The note is auto-detected and protected at the next build.
 
 - 119 notes carry a private marker and are not excluded by `ignorePatterns`.
 - 106 of those also have `draft: true` and are removed by the `remove-draft` filter before emit.
-- 13 non-draft private notes are the encrypted + unlisted set (e.g. `10-ComputeScience/AI/RDMA笔记.md`, `20-工作/FinTech/资产配置.md`).
+- 13 non-draft private notes are the encrypted + listed set (e.g. `10-ComputeScience/AI/RDMA笔记.md`, `20-工作/FinTech/资产配置.md`).
 
 ## Verification
 
@@ -59,6 +78,10 @@ env -u QUARTZ_ACL_PASSWORD npx quartz build   # must FAIL (exit != 0) when priva
 QUARTZ_ACL_PASSWORD=test-secret npx quartz build
 # encrypted HTML count == 13:
 grep -rl 'data-encrypted' public --include='*.html' | wc -l
+# every encrypted note is listed in contentIndex.json (titles public):
+python3 -c "import json; ci=json.load(open('public/static/contentIndex.json')); print('20-工作/工作规划/做好防御' in ci)"
+# an only-encrypted folder still emits a folder page listing its notes:
+test -f public/20-工作/工作规划/index.html
 # password never leaked into any artifact:
 grep -r 'test-secret' public/   # 0 matches
 ```
@@ -66,6 +89,6 @@ grep -r 'test-secret' public/   # 0 matches
 ## Footguns
 
 - A per-note explicit `password:` is respected and unlocks that page independently of the shared password.
-- A per-note explicit `unlisted: false` makes the page encrypted-but-listed (slug/title visible in nav/index; body still encrypted; absent from the shadow index).
-- Public notes that link to a private note still expose the private slug as a graph node (no content). Inherent to unlisted mode; use `stealth` mode only if that is unacceptable.
+- A per-note explicit `unlisted: false`/`true` is respected: `false` keeps it listed, `true` hides it from listings (and then it is also excluded from folder pages — an only-`true` folder would 404, as the folder-page emitter skips folders with no listed children).
+- Public notes that link to a private note expose the private slug as a graph node (no content).
 - Node < 22.18 silently skips loading the local `.ts` plugin and would publish plaintext again. Keep `.node-version` at >= v22.18.0.

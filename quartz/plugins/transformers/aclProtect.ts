@@ -34,11 +34,11 @@ function isPrivateNote(frontmatter: Record<string, unknown>): boolean {
  * (obsidian-flavored-markdown, order 30) and before @quartz-community/encrypted-pages
  * (html phase, order 900). For every note whose frontmatter is tagged "@acl/private"
  * (or access: "private"), it injects the single shared build-time password into
- * frontmatter.password (unless an explicit per-note password exists) and sets
- * frontmatter.unlisted = true (unless an explicit boolean exists), so the
- * encrypted-pages plugin encrypts the page and unlists it. After a correct unlock,
- * encrypted-pages' shadow index (static/encryptedContentIndex.json) re-adds the page
- * to graph/explorer/search for the session.
+ * frontmatter.password (unless an explicit per-note password exists), so the
+ * encrypted-pages plugin encrypts the page. The notes stay LISTED (unlistWhenEncrypted
+ * is false): their titles/slugs appear in folder pages, Explorer, search and graph,
+ * but the body is AES-GCM encrypted and requires the password on click. Folder pages
+ * are emitted normally because the notes are not unlisted — no broken folders.
  *
  * Fail-loud: if any private note exists while no password is configured, the build
  * ABORTS (per-file throw -> createFileParser catch -> trace() -> process.exit(1) on
@@ -79,9 +79,6 @@ export const AclProtect: QuartzTransformerPlugin<AclProtectOptions> = (opts) => 
             // Respect explicit per-note overrides; never clobber an existing value.
             if (typeof frontmatter.password !== "string" || frontmatter.password.length === 0) {
               frontmatter.password = sharedPassword
-            }
-            if (typeof frontmatter.unlisted !== "boolean") {
-              frontmatter.unlisted = true
             }
 
             // The @quartz-community/og-image emitter otherwise generates a per-note

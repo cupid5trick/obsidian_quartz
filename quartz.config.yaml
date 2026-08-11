@@ -258,7 +258,7 @@ plugins:
     options:
       iterations: 600000
       passwordField: password
-      unlistWhenEncrypted: true
+      unlistWhenEncrypted: false
       outputPath: static/encryptedContentIndex.json
     order: 900
     # Mount the EncryptedPage component so its client script loads (password
