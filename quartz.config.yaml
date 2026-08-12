@@ -13,6 +13,7 @@ configuration:
     - templates
     - .obsidian
     - 98-publish
+    - site
     - template
     - .git/**/*
     - .vscode
@@ -202,10 +203,20 @@ plugins:
       priority: 5
       condition: not-index
   - source: "@quartz-community/comments"
-    enabled: false
+    enabled: true
     options:
       provider: giscus
-      options: {}
+      options:
+        repo: "cupid5trick/cupid5trick-docs"
+        repoId: "R_kgDOGSiW-g"
+        category: "Comments"
+        categoryId: "DIC_kwDOGSiW-s4Cc8C1"
+        lang: ""
+        mapping: title
+        reactionsEnabled: "1"
+        emitMetadata: "0"
+        inputPosition: top
+        lazyLoading: true
     layout:
       position: afterBody
       priority: 10
